@@ -5,36 +5,38 @@ A web-based art inventory tool for artists using SvelteKit, designed for managin
 
 ## Image Storage Strategy
 
-### Current Implementation: Vercel Blob + KV Storage
-- **Status:** Complete Vercel ecosystem integration
-- **Blob Storage:** Images stored in Vercel Blob (5GB storage, 100GB bandwidth)
-- **Database:** Artwork metadata stored in Vercel KV (Redis-compatible)
-- **Benefits:** Native Vercel integration, cross-browser persistence, no localStorage dependency
+### Current Implementation: Firebase (Complete Migration)
+- **Status:** Complete Firebase ecosystem integration
+- **Firebase Storage:** Images stored in Firebase Storage with automatic scaling
+- **Firebase Firestore:** Artwork metadata stored in Firestore NoSQL database
+- **Benefits:** Unified Google Cloud infrastructure, real-time updates, cross-platform sync, automatic backup
 
-### Future Migration: Cloudinary
-- **Plan:** Migrate to Cloudinary later for advanced image features
-- **Benefits:** Image optimization, transformations, CDN, art-focused features
-- **Timeline:** After initial deployment and testing with Vercel Blob
+### Migration History
+- **Phase 1:** Started with localStorage (browser-only)
+- **Phase 2:** Attempted Vercel Blob + KV integration
+- **Phase 3:** Migrated to Firebase for unified solution
 
 ## Architecture Decisions
 
 ### Data Storage
-- **Production:** Vercel KV database for artwork metadata + Vercel Blob for images
+- **Production:** Firebase Firestore for artwork metadata + Firebase Storage for images
 - **Cross-platform:** Complete cross-browser and cross-device synchronization
-- **No localStorage:** All data persists in Vercel infrastructure
+- **Real-time:** Live updates across all connected clients
+- **Scalable:** Google Cloud infrastructure with automatic scaling
 
 ### Image Handling
-- **Current:** Base64 encoding for local storage fallback
-- **Vercel Blob:** Direct file uploads to blob storage with URL references
-- **Future Cloudinary:** Advanced image processing and optimization
+- **Firebase Storage:** Direct file uploads with Firebase SDK
+- **Unique naming:** Images stored with artwork ID and timestamp
+- **Automatic cleanup:** Images deleted when artwork is removed
+- **CDN delivery:** Global content delivery network
 
 ## Tech Stack
 - **Frontend:** SvelteKit with TypeScript
 - **Styling:** Custom CSS with gallery-inspired minimal design
-- **State Management:** Svelte stores with localStorage persistence
-- **Image Storage:** Vercel Blob (migrating from base64)
-- **Deployment:** Vercel
-- **Future Images:** Cloudinary
+- **State Management:** Svelte stores with Firebase integration
+- **Database:** Firebase Firestore (NoSQL)
+- **Image Storage:** Firebase Storage
+- **Deployment:** Vercel (with Firebase backend)
 
 ## Key Features
 - Add/edit/view artworks
@@ -51,21 +53,26 @@ A web-based art inventory tool for artists using SvelteKit, designed for managin
 
 ## Environment Variables
 ```
-# Vercel Blob Storage
-BLOB_READ_WRITE_TOKEN=your_vercel_blob_token_here
-
-# Vercel KV Database
-KV_URL=your_kv_url_here
-KV_REST_API_URL=your_kv_rest_api_url_here
-KV_REST_API_TOKEN=your_kv_rest_api_token_here
-KV_REST_API_READ_ONLY_TOKEN=your_kv_readonly_token_here
+# Firebase Configuration
+VITE_FIREBASE_API_KEY=your_firebase_api_key_here
+VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id_here
+VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id_here
+VITE_FIREBASE_APP_ID=your_firebase_app_id_here
 ```
 
 **Setup Instructions:**
-1. **Vercel Blob:** Create a Blob store in Vercel dashboard → Copy read/write token
-2. **Vercel KV:** Create a KV database in Vercel dashboard → Copy all connection details
-3. Add all environment variables to your Vercel project settings
-4. For local development, create `.env.local` with all tokens
+1. **Firebase Project:** Create a new Firebase project at https://console.firebase.google.com
+2. **Firestore Database:** Enable Firestore Database in production mode
+3. **Firebase Storage:** Enable Firebase Storage with default rules
+4. **Web App:** Register a web app and copy the config values
+5. **Environment Variables:** Add all variables to your Vercel project settings
+6. **Local Development:** Create `.env.local` with all Firebase config values
+
+**Firebase Security Rules:**
+- **Firestore:** Configure rules to allow read/write for your use case
+- **Storage:** Configure rules to allow image uploads and deletions
 
 ## Notes
 - Remove artist field (single artist use)

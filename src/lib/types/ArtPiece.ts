@@ -12,13 +12,14 @@ export interface ArtPiece {
 	medium: string;
 	description?: string;
 	imageUrl: string;
+	imagePath?: string;
 	status: 'available' | 'sold' | 'on_hold' | 'exhibition' | 'damaged';
 	price?: number;
 	currency?: string;
 	location?: string;
 	provenance?: string;
-	created_date: string;
-	updated_date: string;
+	createdAt: Date;
+	updatedAt: Date;
 }
 
 export type ArtPieceStatus = ArtPiece['status'];
