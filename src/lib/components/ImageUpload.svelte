@@ -1,12 +1,14 @@
  <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { vercelBlobService } from '$lib/services/vercelBlob.js';
+	import { uploadImage } from '$lib/firebase/storage.js';
 
 	export let currentImageUrl: string = '';
 	export let required: boolean = false;
+	export let artworkId: string = '';
 
 	const dispatch = createEventDispatcher<{
 		imageChange: string;
+		imagePathChange: string;
 	}>();
 
 	let fileInput: HTMLInputElement;
@@ -51,6 +53,11 @@
 			return;
 		}
 
+		if (!artworkId) {
+			uploadError = 'Artwork ID is required for upload';
+			return;
+		}
+
 		// Clear any previous errors
 		uploadError = '';
 		uploading = true;
@@ -60,22 +67,13 @@
 			const objectUrl = URL.createObjectURL(file);
 			previewUrl = objectUrl;
 			
-			// Upload to Vercel Blob or fallback to base64
-			let imageUrl: string;
+			// Upload to Firebase Storage
+			const result = await uploadImage(file, artworkId);
 			
-			try {
-				// Try Vercel Blob upload first
-				const result = await vercelBlobService.uploadImage(file);
-				imageUrl = result.url;
-			} catch (blobError) {
-				console.warn('Vercel Blob upload failed, falling back to base64:', blobError);
-				// Fallback to base64 for local development
-				imageUrl = await vercelBlobService.convertToBase64(file);
-			}
-			
-			// Update preview with the final URL and dispatch the change
-			previewUrl = imageUrl;
-			dispatch('imageChange', imageUrl);
+			// Update preview with the final URL and dispatch the changes
+			previewUrl = result.url;
+			dispatch('imageChange', result.url);
+			dispatch('imagePathChange', result.path);
 			
 		} catch (error) {
 			console.error('Image upload failed:', error);
@@ -93,6 +91,7 @@
 			fileInput.value = '';
 		}
 		dispatch('imageChange', '');
+		dispatch('imagePathChange', '');
 	}
 
 	function openFileDialog() {

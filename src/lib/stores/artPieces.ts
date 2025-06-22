@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import type { ArtPiece } from '$lib/types/ArtPiece.js';
-import { vercelKVService } from '$lib/services/vercelKV.js';
+import { addArtwork, updateArtwork, deleteArtwork, getArtwork, getAllArtworks } from '$lib/firebase/firestore.js';
+import { deleteImage } from '$lib/firebase/storage.js';
 import { browser } from '$app/environment';
 
 function createArtPiecesStore() {
@@ -13,12 +14,8 @@ function createArtPiecesStore() {
 
 	async function loadArtPieces() {
 		try {
-			const artworks = await vercelKVService.getAllArtworks();
-			// Sort by creation date, newest first
-			const sorted = artworks.sort((a, b) => 
-				new Date(b.created_date).getTime() - new Date(a.created_date).getTime()
-			);
-			set(sorted);
+			const artworks = await getAllArtworks();
+			set(artworks);
 		} catch (error) {
 			console.error('Failed to load artworks:', error);
 			set([]);
@@ -27,15 +24,18 @@ function createArtPiecesStore() {
 
 	return {
 		subscribe,
-		// Refresh data from KV
+		// Refresh data from Firestore
 		refresh: loadArtPieces,
 		
 		// Add new artwork
-		add: async (piece: Omit<ArtPiece, 'id' | 'created_date' | 'updated_date'>) => {
+		add: async (piece: Omit<ArtPiece, 'id' | 'createdAt' | 'updatedAt'>) => {
 			try {
-				const newPiece = await vercelKVService.addArtwork(piece);
-				// Add to the beginning of the array (newest first)
-				update(pieces => [newPiece, ...pieces]);
+				const artworkId = await addArtwork(piece);
+				const newPiece = await getArtwork(artworkId);
+				if (newPiece) {
+					// Add to the beginning of the array (newest first)
+					update(pieces => [newPiece, ...pieces]);
+				}
 				return newPiece;
 			} catch (error) {
 				console.error('Failed to add artwork:', error);
@@ -44,9 +44,10 @@ function createArtPiecesStore() {
 		},
 
 		// Update existing artwork
-		updatePiece: async (id: string, updatedPiece: Partial<Omit<ArtPiece, 'id' | 'created_date'>>) => {
+		updatePiece: async (id: string, updatedPiece: Partial<Omit<ArtPiece, 'id' | 'createdAt'>>) => {
 			try {
-				const updated = await vercelKVService.updateArtwork(id, updatedPiece);
+				await updateArtwork(id, updatedPiece);
+				const updated = await getArtwork(id);
 				if (updated) {
 					update(pieces => 
 						pieces.map(piece => piece.id === id ? updated : piece)
@@ -62,7 +63,21 @@ function createArtPiecesStore() {
 		// Remove artwork
 		remove: async (id: string) => {
 			try {
-				await vercelKVService.deleteArtwork(id);
+				// Get artwork to access image path for deletion
+				const artwork = await getArtwork(id);
+				
+				// Delete artwork from Firestore
+				await deleteArtwork(id);
+				
+				// Delete image from Firebase Storage if it exists
+				if (artwork?.imagePath) {
+					try {
+						await deleteImage(artwork.imagePath);
+					} catch (imageError) {
+						console.warn('Failed to delete image:', imageError);
+					}
+				}
+				
 				update(pieces => pieces.filter(piece => piece.id !== id));
 			} catch (error) {
 				console.error('Failed to remove artwork:', error);
@@ -70,10 +85,10 @@ function createArtPiecesStore() {
 			}
 		},
 
-		// Get artwork by ID (from KV, not local store)
+		// Get artwork by ID (from Firestore, not local store)
 		getById: async (id: string): Promise<ArtPiece | null> => {
 			try {
-				return await vercelKVService.getArtwork(id);
+				return await getArtwork(id);
 			} catch (error) {
 				console.error('Failed to get artwork:', error);
 				return null;

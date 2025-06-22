@@ -18,6 +18,7 @@
 		medium: '',
 		description: '',
 		imageUrl: '',
+		imagePath: '',
 		status: 'available' as ArtPiece['status'],
 		price: 0,
 		currency: 'EUR',
@@ -38,6 +39,7 @@
 			medium: artwork.medium || '',
 			description: artwork.description || '',
 			imageUrl: artwork.imageUrl || '',
+			imagePath: artwork.imagePath || '',
 			status: artwork.status || 'available' as ArtPiece['status'],
 			price: artwork.price || 0,
 			currency: artwork.currency || 'EUR',
@@ -59,8 +61,8 @@
 		const artworkData: ArtPiece = {
 			id: artwork.id || '',
 			...formData,
-			created_date: artwork.created_date || new Date().toISOString(),
-			updated_date: new Date().toISOString()
+			createdAt: artwork.createdAt || new Date(),
+			updatedAt: new Date()
 		};
 		
 		dispatch('save', artworkData);
@@ -73,6 +75,13 @@
 	function handleImageChange(event: CustomEvent<string>) {
 		formData.imageUrl = event.detail;
 	}
+
+	function handleImagePathChange(event: CustomEvent<string>) {
+		formData.imagePath = event.detail;
+	}
+
+	// Generate a unique ID for new artworks (used for image uploads)
+	const tempArtworkId = artwork.id || crypto.randomUUID();
 </script>
 
 <div class="form-container">
@@ -114,8 +123,10 @@
 			<div class="form-group full-width">
 				<ImageUpload 
 					currentImageUrl={formData.imageUrl}
+					artworkId={tempArtworkId}
 					required={!isEditing || !formData.imageUrl}
 					on:imageChange={handleImageChange}
+					on:imagePathChange={handleImagePathChange}
 				/>
 			</div>
 
