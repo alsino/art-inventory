@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { artPieces } from '$lib/stores/artPieces.js';
 	import type { ArtPiece } from '$lib/types/ArtPiece.js';
+	import { browser } from '$app/environment';
 
 	let selectedStatus: ArtPiece['status'] | 'all' = 'all';
 
@@ -50,6 +51,162 @@
 		return counts;
 	}, {} as Record<ArtPiece['status'], number>);
 
+	async function exportToPDF() {
+		if (!browser) return;
+
+		try {
+			// Dynamic import for client-side only
+			const { jsPDF } = await import('jspdf');
+			
+			const doc = new jsPDF();
+			const pageWidth = doc.internal.pageSize.getWidth();
+			const pageHeight = doc.internal.pageSize.getHeight();
+			const margin = 20;
+			const lineHeight = 10;
+			let yPosition = margin;
+
+			// Add sleek header with icon (if available)
+			try {
+				// Try to add the icon
+				const iconImg = new Image();
+				iconImg.src = '/icon.png';
+				await new Promise((resolve) => {
+					iconImg.onload = () => {
+						try {
+							doc.addImage(iconImg, 'PNG', margin, yPosition, 8, 8);
+						} catch (error) {
+							console.warn('Could not add icon to PDF');
+						}
+						resolve(null);
+					};
+					iconImg.onerror = () => resolve(null);
+				});
+			} catch (error) {
+				console.warn('Could not load icon for PDF');
+			}
+
+			// Main header - aligned with icon center
+			doc.setFontSize(16);
+			doc.setFont('helvetica', 'normal');
+			doc.text('INVENTAR', margin + 12, yPosition + 6); // +6 to center with 8px icon
+			yPosition += 15;
+
+			// Thin line under header
+			doc.setDrawColor(0);
+			doc.setLineWidth(0.1);
+			doc.line(margin, yPosition, pageWidth - margin, yPosition);
+			yPosition += 15;
+
+			// Filter info in smaller, elegant style
+			doc.setFontSize(11);
+			doc.setFont('helvetica', 'normal');
+			const filterText = selectedStatus === 'all' 
+				? `All Artworks — ${filteredAndSortedArtPieces.length} pieces`
+				: `${statusOptions.find(opt => opt.value === selectedStatus)?.label} — ${filteredAndSortedArtPieces.length} pieces`;
+			doc.text(filterText, margin, yPosition);
+			yPosition += 8;
+
+			// Date in subtle style
+			doc.setFontSize(9);
+			doc.setTextColor(120);
+			doc.text(`Generated ${new Date().toLocaleDateString()}`, margin, yPosition);
+			doc.setTextColor(0);
+			yPosition += 25;
+
+			// Clean table headers
+			doc.setFontSize(9);
+			doc.setFont('helvetica', 'normal');
+			doc.setTextColor(100);
+			doc.text('TITLE', margin, yPosition);
+			doc.text('YEAR', margin + 85, yPosition);
+			doc.text('MEDIUM', margin + 115, yPosition);
+			doc.text('DIMENSIONS', margin + 155, yPosition);
+			yPosition += 3;
+
+			// Subtle line under headers
+			doc.setDrawColor(200);
+			doc.setLineWidth(0.3);
+			doc.line(margin, yPosition, pageWidth - margin, yPosition);
+			yPosition += 12;
+
+			// Reset for content
+			doc.setTextColor(0);
+			doc.setDrawColor(0);
+
+			// Artwork entries with improved layout
+			doc.setFont('helvetica', 'normal');
+			
+			for (let i = 0; i < filteredAndSortedArtPieces.length; i++) {
+				const piece = filteredAndSortedArtPieces[i];
+				const hasPrice = piece.price && piece.price > 0;
+				const entryHeight = hasPrice ? 18 : 12;
+				
+				// Check if we need a new page
+				if (yPosition > pageHeight - entryHeight - 15) {
+					doc.addPage();
+					yPosition = margin + 20; // Leave space at top of new page
+				}
+
+				// Artwork data
+				const title = piece.title || 'Untitled';
+				const year = piece.year?.toString() || '';
+				const medium = piece.medium || '';
+				
+				// Dimensions
+				let dimensionsText = '';
+				if (piece.dimensions?.width && piece.dimensions?.height) {
+					dimensionsText = `${piece.dimensions.width} × ${piece.dimensions.height} ${piece.dimensions.unit}`;
+				}
+
+				// Smart text truncation
+				const truncatedTitle = title.length > 32 ? title.substring(0, 29) + '...' : title;
+				const truncatedMedium = medium.length > 16 ? medium.substring(0, 13) + '...' : medium;
+				const truncatedDimensions = dimensionsText.length > 16 ? dimensionsText.substring(0, 13) + '...' : dimensionsText;
+
+				// Main artwork info
+				doc.setFontSize(10);
+				doc.setFont('helvetica', 'normal');
+				doc.text(truncatedTitle, margin, yPosition);
+				doc.text(year, margin + 85, yPosition);
+				doc.text(truncatedMedium, margin + 115, yPosition);
+				doc.text(truncatedDimensions, margin + 155, yPosition);
+
+				// Price in elegant style if available - below title
+				if (hasPrice) {
+					doc.setFontSize(8);
+					doc.setTextColor(100);
+					doc.setFont('helvetica', 'normal');
+					const price = `${piece.currency || 'EUR'} ${piece.price.toLocaleString()}`;
+					doc.text(price, margin, yPosition + 4);
+					doc.setTextColor(0);
+				}
+
+				yPosition += entryHeight;
+			}
+
+			// Footer
+			const totalPages = doc.internal.getNumberOfPages();
+			for (let i = 1; i <= totalPages; i++) {
+				doc.setPage(i);
+				doc.setFontSize(8);
+				doc.setTextColor(100);
+				doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin - 20, pageHeight - 10);
+			}
+
+			// Download PDF with timestamp
+			const now = new Date();
+			const timestamp = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+			const filename = selectedStatus === 'all' 
+				? `inventar-all-artworks-${timestamp.replace(/\//g, '-')}.pdf`
+				: `inventar-${selectedStatus}-artworks-${timestamp.replace(/\//g, '-')}.pdf`;
+			doc.save(filename);
+
+		} catch (error) {
+			console.error('PDF Export failed:', error);
+			alert('Failed to export PDF. Please try again.');
+		}
+	}
+
 </script>
 
 <svelte:head>
@@ -58,6 +215,9 @@
 
 <div class="container">
 	<div class="header-actions">
+		<button class="export-button" on:click={exportToPDF}>
+			📄 Export PDF
+		</button>
 		<a href="/add" class="add-button">+ Add New Artwork</a>
 	</div>
 
@@ -112,9 +272,12 @@
 
 	.header-actions {
 		margin-bottom: 40px;
-		text-align: right;
+		display: flex;
+		justify-content: flex-end;
+		gap: 10px;
 	}
 
+	.export-button,
 	.add-button {
 		color: #000;
 		border: 1px solid #000;
@@ -123,10 +286,24 @@
 		font-weight: 400;
 		text-transform: uppercase;
 		letter-spacing: 1px;
+		background: #fff;
+		cursor: pointer;
+		font-family: inherit;
 	}
 
+	.export-button:hover,
 	.add-button:hover {
 		background: #000;
+		color: #fff;
+	}
+
+	.export-button {
+		border-color: #666;
+		color: #666;
+	}
+
+	.export-button:hover {
+		background: #666;
 		color: #fff;
 	}
 
@@ -235,6 +412,17 @@
 	@media (max-width: 768px) {
 		.container {
 			padding: 20px;
+		}
+
+		.header-actions {
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.export-button,
+		.add-button {
+			padding: 8px 16px;
+			font-size: 12px;
 		}
 
 		.filter-buttons {

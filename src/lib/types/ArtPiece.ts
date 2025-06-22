@@ -5,7 +5,6 @@ export interface ArtPiece {
 	dimensions: {
 		width: number;
 		height: number;
-		depth?: number;
 		unit: 'cm' | 'in' | 'mm';
 	};
 	medium: string;
@@ -16,7 +15,6 @@ export interface ArtPiece {
 	price?: number;
 	currency?: string;
 	location?: string;
-	provenance?: string;
 	createdAt: Date;
 	updatedAt: Date;
 }
