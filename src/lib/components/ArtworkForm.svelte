@@ -13,7 +13,6 @@
 
 	let formData = {
 		title: '',
-		artist: 'Artist Name',
 		year: new Date().getFullYear(),
 		medium: '',
 		description: '',
@@ -34,7 +33,6 @@
 	function initializeFormData() {
 		formData = {
 			title: artwork.title || '',
-			artist: artwork.artist || 'Artist Name',
 			year: artwork.year || new Date().getFullYear(),
 			medium: artwork.medium || '',
 			description: artwork.description || '',

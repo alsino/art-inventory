@@ -1,7 +1,6 @@
 export interface ArtPiece {
 	id: string;
 	title: string;
-	artist: string;
 	year: number;
 	dimensions: {
 		width: number;
