@@ -5,10 +5,11 @@ A web-based art inventory tool for artists using SvelteKit, designed for managin
 
 ## Image Storage Strategy
 
-### Current Implementation: Vercel Blob Storage
-- **Status:** Starting with Vercel Blob for simplicity and Vercel integration
-- **Benefits:** Native Vercel integration, generous free tier (5GB storage, 100GB bandwidth)
-- **Setup:** Using @vercel/blob package for seamless deployment
+### Current Implementation: Vercel Blob + KV Storage
+- **Status:** Complete Vercel ecosystem integration
+- **Blob Storage:** Images stored in Vercel Blob (5GB storage, 100GB bandwidth)
+- **Database:** Artwork metadata stored in Vercel KV (Redis-compatible)
+- **Benefits:** Native Vercel integration, cross-browser persistence, no localStorage dependency
 
 ### Future Migration: Cloudinary
 - **Plan:** Migrate to Cloudinary later for advanced image features
@@ -18,9 +19,9 @@ A web-based art inventory tool for artists using SvelteKit, designed for managin
 ## Architecture Decisions
 
 ### Data Storage
-- **Local Development:** localStorage for persistence across browser sessions
-- **Production:** localStorage + Vercel Blob for images
-- **Future:** Consider Supabase or similar for multi-device sync
+- **Production:** Vercel KV database for artwork metadata + Vercel Blob for images
+- **Cross-platform:** Complete cross-browser and cross-device synchronization
+- **No localStorage:** All data persists in Vercel infrastructure
 
 ### Image Handling
 - **Current:** Base64 encoding for local storage fallback
@@ -50,14 +51,21 @@ A web-based art inventory tool for artists using SvelteKit, designed for managin
 
 ## Environment Variables
 ```
-BLOB_READ_WRITE_TOKEN=your_token_here
+# Vercel Blob Storage
+BLOB_READ_WRITE_TOKEN=your_vercel_blob_token_here
+
+# Vercel KV Database
+KV_URL=your_kv_url_here
+KV_REST_API_URL=your_kv_rest_api_url_here
+KV_REST_API_TOKEN=your_kv_rest_api_token_here
+KV_REST_API_READ_ONLY_TOKEN=your_kv_readonly_token_here
 ```
 
 **Setup Instructions:**
-1. Create a Vercel Blob store in your Vercel dashboard
-2. Copy the read/write token from Storage > Blob
-3. Add to your Vercel project environment variables as `BLOB_READ_WRITE_TOKEN`
-4. For local development, create `.env.local` with the token
+1. **Vercel Blob:** Create a Blob store in Vercel dashboard → Copy read/write token
+2. **Vercel KV:** Create a KV database in Vercel dashboard → Copy all connection details
+3. Add all environment variables to your Vercel project settings
+4. For local development, create `.env.local` with all tokens
 
 ## Notes
 - Remove artist field (single artist use)

@@ -1,87 +1,83 @@
 import { writable } from 'svelte/store';
 import type { ArtPiece } from '$lib/types/ArtPiece.js';
-import { mockArtPieces } from '$lib/data/mockData.js';
+import { vercelKVService } from '$lib/services/vercelKV.js';
 import { browser } from '$app/environment';
 
-const STORAGE_KEY = 'art-inventory-pieces';
-
-// Load data from localStorage or use mock data as fallback
-function loadArtPieces(): ArtPiece[] {
-	if (!browser) return mockArtPieces;
-	
-	try {
-		const stored = localStorage.getItem(STORAGE_KEY);
-		if (stored) {
-			const parsed = JSON.parse(stored);
-			// If we have stored data, use it; otherwise use mock data
-			return parsed.length > 0 ? parsed : mockArtPieces;
-		}
-	} catch (error) {
-		console.warn('Failed to load art pieces from localStorage:', error);
-	}
-	
-	return mockArtPieces;
-}
-
-// Save data to localStorage
-function saveArtPieces(pieces: ArtPiece[]) {
-	if (!browser) return;
-	
-	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(pieces));
-	} catch (error) {
-		console.warn('Failed to save art pieces to localStorage:', error);
-	}
-}
-
 function createArtPiecesStore() {
-	const initialData = loadArtPieces();
-	const { subscribe, set, update } = writable<ArtPiece[]>(initialData);
+	const { subscribe, set, update } = writable<ArtPiece[]>([]);
+	
+	// Load data on initialization
+	if (browser) {
+		loadArtPieces();
+	}
+
+	async function loadArtPieces() {
+		try {
+			const artworks = await vercelKVService.getAllArtworks();
+			// Sort by creation date, newest first
+			const sorted = artworks.sort((a, b) => 
+				new Date(b.created_date).getTime() - new Date(a.created_date).getTime()
+			);
+			set(sorted);
+		} catch (error) {
+			console.error('Failed to load artworks:', error);
+			set([]);
+		}
+	}
 
 	return {
 		subscribe,
-		set: (pieces: ArtPiece[]) => {
-			set(pieces);
-			saveArtPieces(pieces);
+		// Refresh data from KV
+		refresh: loadArtPieces,
+		
+		// Add new artwork
+		add: async (piece: Omit<ArtPiece, 'id' | 'created_date' | 'updated_date'>) => {
+			try {
+				const newPiece = await vercelKVService.addArtwork(piece);
+				// Add to the beginning of the array (newest first)
+				update(pieces => [newPiece, ...pieces]);
+				return newPiece;
+			} catch (error) {
+				console.error('Failed to add artwork:', error);
+				throw error;
+			}
 		},
-		add: (piece: Omit<ArtPiece, 'id' | 'created_date' | 'updated_date'>) => {
-			const newPiece: ArtPiece = {
-				...piece,
-				id: crypto.randomUUID(),
-				created_date: new Date().toISOString(),
-				updated_date: new Date().toISOString()
-			};
-			update(pieces => {
-				const updated = [...pieces, newPiece];
-				saveArtPieces(updated);
+
+		// Update existing artwork
+		updatePiece: async (id: string, updatedPiece: Partial<Omit<ArtPiece, 'id' | 'created_date'>>) => {
+			try {
+				const updated = await vercelKVService.updateArtwork(id, updatedPiece);
+				if (updated) {
+					update(pieces => 
+						pieces.map(piece => piece.id === id ? updated : piece)
+					);
+				}
 				return updated;
-			});
-			return newPiece;
+			} catch (error) {
+				console.error('Failed to update artwork:', error);
+				throw error;
+			}
 		},
-		updatePiece: (id: string, updatedPiece: Partial<Omit<ArtPiece, 'id' | 'created_date'>>) => {
-			update(pieces => {
-				const updated = pieces.map(piece => 
-					piece.id === id 
-						? { ...piece, ...updatedPiece, updated_date: new Date().toISOString() }
-						: piece
-				);
-				saveArtPieces(updated);
-				return updated;
-			});
+
+		// Remove artwork
+		remove: async (id: string) => {
+			try {
+				await vercelKVService.deleteArtwork(id);
+				update(pieces => pieces.filter(piece => piece.id !== id));
+			} catch (error) {
+				console.error('Failed to remove artwork:', error);
+				throw error;
+			}
 		},
-		remove: (id: string) => {
-			update(pieces => {
-				const updated = pieces.filter(piece => piece.id !== id);
-				saveArtPieces(updated);
-				return updated;
-			});
-		},
-		getById: (id: string) => {
-			let result: ArtPiece | undefined;
-			subscribe(pieces => {
-				result = pieces.find(piece => piece.id === id);
-			})();
-			return result;
+
+		// Get artwork by ID (from KV, not local store)
+		getById: async (id: string): Promise<ArtPiece | null> => {
+			try {
+				return await vercelKVService.getArtwork(id);
+			} catch (error) {
+				console.error('Failed to get artwork:', error);
+				return null;
+			}
 		}
 	};
 }

@@ -5,10 +5,15 @@
 	import { goto } from '$app/navigation';
 	import type { ArtPiece } from '$lib/types/ArtPiece.js';
 
-	function handleSave(event: CustomEvent<ArtPiece>) {
-		const newArtwork = artPieces.add(event.detail);
-		toasts.add(`Artwork "${newArtwork.title}" has been created successfully!`, 'success');
-		goto(`/piece/${newArtwork.id}`);
+	async function handleSave(event: CustomEvent<ArtPiece>) {
+		try {
+			const newArtwork = await artPieces.add(event.detail);
+			toasts.add(`Artwork "${newArtwork.title}" has been created successfully!`, 'success');
+			goto(`/piece/${newArtwork.id}`);
+		} catch (error) {
+			console.error('Failed to save artwork:', error);
+			toasts.add('Failed to save artwork. Please try again.', 'error');
+		}
 	}
 
 	function handleCancel() {
