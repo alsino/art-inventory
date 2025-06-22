@@ -16,7 +16,7 @@ A web-based art inventory tool for artists using SvelteKit, designed for managin
 - **Phase 2:** Attempted Vercel Blob + KV integration
 - **Phase 3:** Migrated to Firebase for one unified solution
 
-## Architecture Decisions
+## Architecture Decisions (for now)
 
 ### Data Storage
 - **Production:** Firebase Firestore for artwork metadata + Firebase Storage for images
