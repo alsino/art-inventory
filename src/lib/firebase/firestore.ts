@@ -87,10 +87,10 @@ export async function getArtwork(id: string): Promise<ArtPiece | null> {
 
 export async function getAllArtworks(): Promise<ArtPiece[]> {
     try {
-        const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
+        const collectionRef = collection(db, COLLECTION_NAME);
+        const querySnapshot = await getDocs(collectionRef);
         
-        return querySnapshot.docs.map(doc => {
+        const artworks = querySnapshot.docs.map(doc => {
             const data = doc.data() as FirestoreArtPiece;
             return {
                 id: doc.id,
@@ -99,8 +99,14 @@ export async function getAllArtworks(): Promise<ArtPiece[]> {
                 updatedAt: data.updatedAt?.toDate() || new Date()
             };
         });
+        
+        // Sort manually since orderBy might cause issues with empty collection
+        return artworks.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        
     } catch (error) {
-        console.error('Error getting artworks:', error);
-        throw new Error('Failed to get artworks');
+        console.error('Firestore error:', error);
+        
+        // Return empty array instead of throwing to prevent app crash
+        return [];
     }
 }

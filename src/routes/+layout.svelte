@@ -6,7 +6,12 @@
 
 <header>
 	<nav>
-		<h1><a href="/">ART INVENTORY</a></h1>
+		<h1>
+			<a href="/" class="logo">
+				<img src="/icon.png" alt="Inventar" class="logo-icon" />
+				INVENTAR
+			</a>
+		</h1>
 	</nav>
 </header>
 
@@ -28,18 +33,37 @@
 	}
 	
 	nav {
-		padding: 20px 30px;
-		text-align: center;
+		padding: 15px 30px;
+		text-align: left;
+		max-width: 1200px;
+		margin: 0 auto;
 	}
 	
 	nav h1 {
-		font-size: 16px;
+		font-size: 18px;
 		font-weight: 400;
-		letter-spacing: 2px;
+		letter-spacing: 1.5px;
+		margin: 0;
 	}
 	
-	nav a {
+	.logo {
 		color: #000;
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+		text-decoration: none;
+		transition: all 0.2s ease;
+	}
+	
+	.logo:hover {
+		opacity: 0.7;
+	}
+	
+	.logo-icon {
+		width: 20px;
+		height: 20px;
+		object-fit: contain;
+		filter: brightness(0);
 	}
 	
 	main {
@@ -49,15 +73,25 @@
 
 	@media (max-width: 768px) {
 		nav {
-			padding: 15px 20px;
+			padding: 12px 20px;
 		}
 		
 		nav h1 {
-			font-size: 14px;
+			font-size: 16px;
+			letter-spacing: 1px;
+		}
+		
+		.logo {
+			gap: 8px;
+		}
+		
+		.logo-icon {
+			width: 18px;
+			height: 18px;
 		}
 		
 		main {
-			margin-top: 50px;
+			margin-top: 55px;
 		}
 	}
 </style>

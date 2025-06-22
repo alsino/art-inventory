@@ -1,9 +1,14 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { artPieces } from '$lib/stores/artPieces.js';
+	import { toasts } from '$lib/stores/toast.js';
+	import { goto } from '$app/navigation';
 	
 	export let data: PageData;
 	
 	const { piece } = data;
+	let showDeleteConfirm = false;
+	let deleting = false;
 
 	function formatPrice(price?: number, currency?: string): string {
 		if (!price) return '';
@@ -30,6 +35,29 @@
 				return '#6c757d';
 		}
 	}
+
+	function handleDelete() {
+		showDeleteConfirm = true;
+	}
+
+	function cancelDelete() {
+		showDeleteConfirm = false;
+	}
+
+	async function confirmDelete() {
+		deleting = true;
+		try {
+			await artPieces.remove(piece.id);
+			toasts.add(`Artwork "${piece.title}" has been deleted successfully!`, 'success');
+			goto('/');
+		} catch (error) {
+			console.error('Failed to delete artwork:', error);
+			toasts.add('Failed to delete artwork. Please try again.', 'error');
+		} finally {
+			deleting = false;
+			showDeleteConfirm = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -39,7 +67,12 @@
 <div class="container">
 	<nav class="breadcrumb">
 		<a href="/">← Back</a>
-		<a href="/piece/{piece.id}/edit" class="edit-link">Edit</a>
+		<div class="actions">
+			<a href="/piece/{piece.id}/edit" class="edit-link">Edit</a>
+			<button class="delete-button" on:click={handleDelete} disabled={deleting}>
+				{deleting ? 'Deleting...' : 'Delete'}
+			</button>
+		</div>
 	</nav>
 
 	<div class="detail-layout">
@@ -78,6 +111,25 @@
 	</div>
 </div>
 
+<!-- Delete Confirmation Dialog -->
+{#if showDeleteConfirm}
+	<div class="modal-overlay" on:click={cancelDelete}>
+		<div class="modal" on:click|stopPropagation>
+			<h2>Delete Artwork</h2>
+			<p>Are you sure you want to delete "<strong>{piece.title}</strong>"?</p>
+			<p class="warning">This action cannot be undone. The artwork and its image will be permanently deleted.</p>
+			<div class="modal-actions">
+				<button class="cancel-button" on:click={cancelDelete} disabled={deleting}>
+					Cancel
+				</button>
+				<button class="confirm-delete-button" on:click={confirmDelete} disabled={deleting}>
+					{deleting ? 'Deleting...' : 'Delete Artwork'}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
 <style>
 	.container {
 		padding: 30px;
@@ -97,17 +149,43 @@
 		font-size: 16px;
 	}
 
-	.edit-link {
+	.actions {
+		display: flex;
+		gap: 10px;
+	}
+
+	.edit-link,
+	.delete-button {
 		border: 1px solid #000;
 		padding: 8px 16px;
 		font-size: 14px;
 		text-transform: uppercase;
 		letter-spacing: 1px;
+		background: #fff;
+		color: #000;
+		cursor: pointer;
+		font-family: inherit;
 	}
 
-	.edit-link:hover {
+	.edit-link:hover,
+	.delete-button:hover {
 		background: #000;
 		color: #fff;
+	}
+
+	.delete-button {
+		border-color: #dc3545;
+		color: #dc3545;
+	}
+
+	.delete-button:hover {
+		background: #dc3545;
+		color: #fff;
+	}
+
+	.delete-button:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
 	}
 
 	.detail-layout {
@@ -203,5 +281,91 @@
 			margin-top: 30px;
 			padding-top: 20px;
 		}
+
+		.actions {
+			flex-direction: column;
+			gap: 5px;
+		}
+	}
+
+	/* Modal Styles */
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.5);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+	}
+
+	.modal {
+		background: #fff;
+		padding: 30px;
+		max-width: 400px;
+		width: 90%;
+		border: 1px solid #000;
+	}
+
+	.modal h2 {
+		font-size: 20px;
+		font-weight: 400;
+		margin-bottom: 15px;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+	}
+
+	.modal p {
+		margin-bottom: 15px;
+		line-height: 1.4;
+	}
+
+	.modal .warning {
+		color: #dc3545;
+		font-size: 14px;
+		margin-bottom: 25px;
+	}
+
+	.modal-actions {
+		display: flex;
+		gap: 10px;
+		justify-content: flex-end;
+	}
+
+	.cancel-button,
+	.confirm-delete-button {
+		padding: 10px 20px;
+		font-size: 14px;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+		border: 1px solid #000;
+		background: #fff;
+		color: #000;
+		cursor: pointer;
+		font-family: inherit;
+	}
+
+	.cancel-button:hover {
+		background: #f5f5f5;
+	}
+
+	.confirm-delete-button {
+		border-color: #dc3545;
+		background: #dc3545;
+		color: #fff;
+	}
+
+	.confirm-delete-button:hover {
+		background: #c82333;
+		border-color: #c82333;
+	}
+
+	.confirm-delete-button:disabled,
+	.cancel-button:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
 	}
 </style>

@@ -23,10 +23,13 @@
 		}
 	}
 
-	// Sort artworks by creation date, newest first
-	$: sortedArtPieces = $artPieces.sort((a, b) => 
-		new Date(b.created_date).getTime() - new Date(a.created_date).getTime()
-	);
+	// Sort artworks by creation date, newest first  
+	$: sortedArtPieces = $artPieces
+		.filter(piece => piece.id && piece.id.length > 0) // Filter out any pieces without valid IDs
+		.sort((a, b) => 
+			new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+		);
+
 </script>
 
 <svelte:head>
