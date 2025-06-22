@@ -50,13 +50,13 @@ A web-based art inventory tool for artists using SvelteKit, designed for managin
 
 ## Environment Variables
 ```
-VERCEL_BLOB_READ_WRITE_TOKEN=your_token_here
+BLOB_READ_WRITE_TOKEN=your_token_here
 ```
 
 **Setup Instructions:**
 1. Create a Vercel Blob store in your Vercel dashboard
 2. Copy the read/write token from Storage > Blob
-3. Add to your Vercel project environment variables
+3. Add to your Vercel project environment variables as `BLOB_READ_WRITE_TOKEN`
 4. For local development, create `.env.local` with the token
 
 ## Notes
