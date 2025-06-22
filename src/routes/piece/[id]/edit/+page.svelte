@@ -10,10 +10,15 @@
 	
 	const { piece } = data;
 
-	function handleSave(event: CustomEvent<ArtPiece>) {
-		artPieces.updatePiece(piece.id, event.detail);
-		toasts.add(`Artwork "${event.detail.title}" has been updated successfully!`, 'success');
-		goto(`/piece/${piece.id}`);
+	async function handleSave(event: CustomEvent<ArtPiece>) {
+		try {
+			await artPieces.updatePiece(piece.id, event.detail);
+			toasts.add(`Artwork "${event.detail.title}" has been updated successfully!`, 'success');
+			goto(`/piece/${piece.id}`);
+		} catch (error) {
+			console.error('Failed to update artwork:', error);
+			toasts.add('Failed to update artwork. Please try again.', 'error');
+		}
 	}
 
 	function handleCancel() {
