@@ -58,14 +58,19 @@
 	}
 
 	function handleSubmit() {
-		const artworkData: ArtPiece = {
-			id: artwork.id || '',
-			...formData,
-			createdAt: artwork.createdAt || new Date(),
-			updatedAt: new Date()
-		};
-		
-		dispatch('save', artworkData);
+		// For new artworks, don't include id, createdAt, updatedAt - let the store handle these
+		if (isEditing && artwork.id) {
+			const artworkData: ArtPiece = {
+				id: artwork.id,
+				...formData,
+				createdAt: artwork.createdAt || new Date(),
+				updatedAt: new Date()
+			};
+			dispatch('save', artworkData);
+		} else {
+			// For new artworks, only send the form data without id/timestamps
+			dispatch('save', formData);
+		}
 	}
 
 	function handleCancel() {
@@ -81,7 +86,12 @@
 	}
 
 	// Generate a unique ID for new artworks (used for image uploads)
-	const tempArtworkId = artwork.id || crypto.randomUUID();
+	// Use a consistent ID so the same form always uses the same ID for image uploads
+	let tempArtworkId = artwork.id;
+	if (!tempArtworkId) {
+		// Generate once and keep the same ID for this form instance
+		tempArtworkId = crypto.randomUUID();
+	}
 </script>
 
 <div class="form-container">

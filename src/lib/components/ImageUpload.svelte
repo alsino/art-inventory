@@ -1,6 +1,6 @@
  <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { uploadImage } from '$lib/firebase/storage.js';
+	import { uploadImageWithProgress } from '$lib/firebase/storage.js';
 
 	export let currentImageUrl: string = '';
 	export let required: boolean = false;
@@ -15,6 +15,7 @@
 	let dragOver = false;
 	let previewUrl = currentImageUrl;
 	let uploading = false;
+	let uploadProgress = 0;
 	let uploadError = '';
 	
 	// Update preview when currentImageUrl changes
@@ -61,14 +62,17 @@
 		// Clear any previous errors
 		uploadError = '';
 		uploading = true;
+		uploadProgress = 0;
 
 		try {
 			// Create object URL for immediate preview
 			const objectUrl = URL.createObjectURL(file);
 			previewUrl = objectUrl;
 			
-			// Upload to Firebase Storage
-			const result = await uploadImage(file, artworkId);
+			// Upload to Firebase Storage with progress tracking
+			const result = await uploadImageWithProgress(file, artworkId, (progress) => {
+				uploadProgress = progress;
+			});
 			
 			// Update preview with the final URL and dispatch the changes
 			previewUrl = result.url;
@@ -82,6 +86,7 @@
 			previewUrl = currentImageUrl;
 		} finally {
 			uploading = false;
+			uploadProgress = 0;
 		}
 	}
 
@@ -124,8 +129,12 @@
 			<img src={previewUrl} alt="Preview" class="preview-image" />
 			{#if uploading}
 				<div class="upload-overlay">
-					<div class="loading-spinner"></div>
-					<p>Uploading...</p>
+					<div class="progress-container">
+						<div class="progress-bar">
+							<div class="progress-fill" style="width: {uploadProgress}%"></div>
+						</div>
+						<p class="progress-text">{Math.round(uploadProgress)}% uploaded</p>
+					</div>
 				</div>
 			{:else}
 				<div class="image-actions">
@@ -280,19 +289,34 @@
 		color: white;
 	}
 
-	.loading-spinner {
-		width: 32px;
-		height: 32px;
-		border: 3px solid rgba(255, 255, 255, 0.3);
-		border-top: 3px solid white;
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-		margin-bottom: 10px;
+	.progress-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 10px;
+		width: 200px;
 	}
 
-	@keyframes spin {
-		0% { transform: rotate(0deg); }
-		100% { transform: rotate(360deg); }
+	.progress-bar {
+		width: 100%;
+		height: 8px;
+		background: rgba(255, 255, 255, 0.3);
+		border-radius: 4px;
+		overflow: hidden;
+	}
+
+	.progress-fill {
+		height: 100%;
+		background: #fff;
+		transition: width 0.3s ease;
+		border-radius: 4px;
+	}
+
+	.progress-text {
+		margin: 0;
+		font-size: 14px;
+		color: white;
+		font-weight: 500;
 	}
 
 	.error-message {

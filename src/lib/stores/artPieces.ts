@@ -32,6 +32,7 @@ function createArtPiecesStore() {
 			try {
 				const artworkId = await addArtwork(piece);
 				const newPiece = await getArtwork(artworkId);
+				
 				if (newPiece) {
 					// Add to the beginning of the array (newest first)
 					update(pieces => [newPiece, ...pieces]);
