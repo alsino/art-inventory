@@ -32,19 +32,23 @@ A web-based art inventory tool for artists using SvelteKit, designed for managin
 
 ## Tech Stack
 - **Frontend:** SvelteKit with TypeScript
-- **Styling:** Custom CSS with gallery-inspired minimal design
+- **Styling:** Custom CSS with gallery-inspired minimal design (black/white aesthetic)
 - **State Management:** Svelte stores with Firebase integration
 - **Database:** Firebase Firestore (NoSQL)
-- **Image Storage:** Firebase Storage
+- **Image Storage:** Firebase Storage with CORS considerations
+- **PDF Generation:** jsPDF library for client-side PDF creation
 - **Deployment:** Vercel (with Firebase backend)
 
 ## Key Features
-- Add/edit/view artworks
-- Image upload with persistence
-- Status tracking (available, sold, on hold, exhibition, damaged)
-- Toast notifications for user feedback
-- Mobile-responsive gallery layout
-- Automatic sorting by creation date
+- Add/edit/view artworks with comprehensive metadata
+- Image upload with Firebase Storage persistence and progress tracking
+- Status tracking (available, sold, on hold, exhibition, damaged) with colored indicators
+- Status filtering functionality on overview page
+- Professional PDF export with sleek design matching web application
+- Toast notifications for user feedback (bottom-center positioned)
+- Mobile-responsive gallery layout with proper grid behavior
+- Automatic sorting by creation date (latest first)
+- Delete functionality with confirmation dialogs
 
 ## Development Commands
 - `npm run dev` - Start development server
@@ -74,9 +78,45 @@ VITE_FIREBASE_APP_ID=your_firebase_app_id_here
 - **Firestore:** Configure rules to allow read/write for your use case
 - **Storage:** Configure rules to allow image uploads and deletions
 
-## Notes
-- Remove artist field (single artist use)
-- No provenance or depth fields needed
-- EUR as default currency
-- Colored status dots for visual indicators
-- Toast notifications positioned bottom-center
+## PDF Export Feature
+- **Library:** jsPDF v3.0.1 for client-side PDF generation
+- **Design:** Sleek layout matching web application aesthetic
+- **Header:** Includes icon (/icon.png) and "INVENTAR" branding
+- **Layout:** 4-column table (Title, Year, Medium, Dimensions)
+- **Price Display:** Positioned below title in subtle gray text
+- **Filename Format:** `inventar-{status}-artworks-DD-MM-YYYY.pdf`
+- **Responsive:** Proper page breaks and pagination
+- **Known Limitation:** Image thumbnails disabled due to Firebase Storage CORS restrictions
+
+## Data Structure Notes
+- **Removed Fields:** artist, provenance, depth (cleaned up for single-artist use)
+- **Required Fields:** title, year, medium, dimensions (width, height, unit)
+- **Optional Fields:** description, price, currency, location
+- **Status Values:** available, sold, on_hold, exhibition, damaged
+- **Default Currency:** EUR
+- **Image Storage:** Firebase Storage URLs with cleanup on deletion
+
+## UI/UX Design Principles
+- **Aesthetic:** Minimal black/white gallery-inspired design
+- **Typography:** Clean, uppercase headers with proper letter spacing
+- **Layout:** Left-aligned header, centered filter buttons, responsive grid
+- **Interactions:** Hover effects, smooth transitions, status color coding
+- **Mobile:** Responsive design with touch-friendly interactions
+- **Notifications:** Bottom-center toast positioning without distracting borders
+
+## Known Issues & Considerations
+1. **Firebase Storage CORS:** Images cannot be embedded in PDFs due to CORS policy
+   - Solution: Configure Firebase Storage CORS rules in production
+   - Workaround: PDF export works without thumbnails
+2. **Single Artwork Display:** Fixed grid layout prevents stretching when only one item
+3. **Mobile Upload:** Resolved environment variable issues in Vercel deployment
+4. **Git Security:** Cleaned history after accidental API key exposure
+
+## Future Development Ideas
+- Add image thumbnails to PDF when CORS is resolved
+- Implement user authentication for multi-artist support
+- Add bulk operations (delete, status change)
+- Enhanced search and filtering capabilities
+- Export to other formats (CSV, Excel)
+- Image optimization and compression
+- Artwork categorization and tags
