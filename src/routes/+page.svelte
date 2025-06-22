@@ -173,12 +173,14 @@
 
 	.grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 		gap: 40px 30px;
+		max-width: 100%;
 	}
 
 	.artwork {
 		background: #fff;
+		max-width: 400px;
 	}
 
 	.artwork a {
