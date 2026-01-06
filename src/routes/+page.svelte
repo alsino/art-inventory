@@ -4,6 +4,19 @@
 	import { browser } from '$app/environment';
 
 	let selectedStatus: ArtPiece['status'] | 'all' = 'all';
+	let selectedSort = 'newest-added';
+	let searchQuery = '';
+
+	const sortOptions = [
+		{ value: 'newest-added', label: 'Newest added' },
+		{ value: 'oldest-added', label: 'Oldest added' },
+		{ value: 'year-newest', label: 'Year: newest' },
+		{ value: 'year-oldest', label: 'Year: oldest' },
+		{ value: 'title-az', label: 'Title A-Z' },
+		{ value: 'title-za', label: 'Title Z-A' },
+		{ value: 'price-high', label: 'Price: high to low' },
+		{ value: 'price-low', label: 'Price: low to high' }
+	];
 
 	const statusOptions = [
 		{ value: 'all', label: 'All Artworks' },
@@ -35,13 +48,46 @@
 		}
 	}
 
+	// Search filter function
+	function matchesSearch(piece: ArtPiece, query: string): boolean {
+		if (!query.trim()) return true;
+		const q = query.toLowerCase();
+		return (
+			(piece.title?.toLowerCase().includes(q)) ||
+			(piece.medium?.toLowerCase().includes(q)) ||
+			(piece.location?.toLowerCase().includes(q)) ||
+			(piece.year?.toString().includes(q)) ||
+			(piece.price?.toString().includes(q)) ||
+			(piece.notes?.toLowerCase().includes(q))
+		);
+	}
+
 	// Filter and sort artworks
 	$: filteredAndSortedArtPieces = $artPieces
-		.filter(piece => piece.id && piece.id.length > 0) // Filter out any pieces without valid IDs
-		.filter(piece => selectedStatus === 'all' || piece.status === selectedStatus) // Filter by status
-		.sort((a, b) => 
-			new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-		);
+		.filter(piece => piece.id && piece.id.length > 0)
+		.filter(piece => selectedStatus === 'all' || piece.status === selectedStatus)
+		.filter(piece => matchesSearch(piece, searchQuery))
+		.sort((a, b) => {
+			switch (selectedSort) {
+				case 'oldest-added':
+					return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+				case 'year-newest':
+					return (b.year || 0) - (a.year || 0);
+				case 'year-oldest':
+					return (a.year || 0) - (b.year || 0);
+				case 'title-az':
+					return (a.title || '').localeCompare(b.title || '');
+				case 'title-za':
+					return (b.title || '').localeCompare(a.title || '');
+				case 'price-high':
+					return (b.price || 0) - (a.price || 0);
+				case 'price-low':
+					return (a.price || 0) - (b.price || 0);
+				case 'newest-added':
+				default:
+					return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+			}
+		});
 
 	// Count artworks by status
 	$: statusCounts = $artPieces.reduce((counts, piece) => {
@@ -75,19 +121,39 @@
 </svelte:head>
 
 <div class="container">
-	<div class="header-actions">
-		<button class="export-button" on:click={exportToPDF}>
-			📄 Export PDF
-		</button>
-		<a href="/add" class="add-button">+ Add New Artwork</a>
+	<div class="header-bar">
+		<div class="header-nav">
+			<div class="search-wrapper">
+				<input
+					type="text"
+					class="search-input"
+					placeholder="Search..."
+					bind:value={searchQuery}
+				/>
+				{#if searchQuery}
+					<button class="search-clear" on:click={() => searchQuery = ''}>×</button>
+				{/if}
+			</div>
+			<select class="sort-dropdown" bind:value={selectedSort}>
+				{#each sortOptions as option}
+					<option value={option.value}>{option.label}</option>
+				{/each}
+			</select>
+		</div>
+		<div class="header-actions">
+			<a href="/add" class="add-button">+ Add New Artwork</a>
+			<button class="export-button" on:click={exportToPDF}>
+				Export PDF
+			</button>
+		</div>
 	</div>
 
 	<!-- Status Filter -->
 	<div class="filter-section">
 		<div class="filter-buttons">
 			{#each statusOptions as option}
-				<button 
-					class="filter-button" 
+				<button
+					class="filter-button"
 					class:active={selectedStatus === option.value}
 					on:click={() => selectedStatus = option.value}
 				>
@@ -101,8 +167,19 @@
 				</button>
 			{/each}
 		</div>
+		<p class="result-count">
+			Showing {filteredAndSortedArtPieces.length} of {$artPieces.filter(p => p.id && p.id.length > 0).length} artworks
+		</p>
 	</div>
-	
+
+	{#if filteredAndSortedArtPieces.length === 0}
+		<div class="empty-state">
+			<p>No artworks found</p>
+			{#if searchQuery}
+				<p class="empty-hint">Try adjusting your search or filters</p>
+			{/if}
+		</div>
+	{:else}
 	<div class="grid">
 		{#each filteredAndSortedArtPieces as piece (piece.id)}
 			<article class="artwork">
@@ -122,6 +199,7 @@
 			</article>
 		{/each}
 	</div>
+	{/if}
 </div>
 
 <style>
@@ -131,10 +209,21 @@
 		margin: 0 auto;
 	}
 
-	.header-actions {
+	.header-bar {
 		margin-bottom: 40px;
 		display: flex;
-		justify-content: flex-end;
+		justify-content: space-between;
+		align-items: center;
+		gap: 20px;
+	}
+
+	.header-nav {
+		display: flex;
+		gap: 10px;
+	}
+
+	.header-actions {
+		display: flex;
 		gap: 10px;
 	}
 
@@ -168,15 +257,114 @@
 		color: #fff;
 	}
 
+	.sort-dropdown {
+		padding: 10px 20px;
+		font-size: 14px;
+		font-weight: 400;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		border: 1px solid #ccc;
+		background: #fff;
+		color: #666;
+		cursor: pointer;
+		font-family: inherit;
+		appearance: none;
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-position: right 12px center;
+		padding-right: 36px;
+	}
+
+	.sort-dropdown:hover {
+		border-color: #000;
+		color: #000;
+	}
+
+	.sort-dropdown:focus {
+		outline: none;
+		border-color: #000;
+	}
+
+	.search-input {
+		padding: 10px 20px;
+		font-size: 14px;
+		font-weight: 400;
+		border: 1px solid #ccc;
+		background: #fff;
+		color: #000;
+		font-family: inherit;
+		min-width: 200px;
+	}
+
+	.search-input::placeholder {
+		color: #999;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+	}
+
+	.search-input:hover {
+		border-color: #000;
+	}
+
+	.search-input:focus {
+		outline: none;
+		border-color: #000;
+	}
+
+	.search-wrapper {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
+	.search-clear {
+		position: absolute;
+		right: 8px;
+		background: none;
+		border: none;
+		font-size: 20px;
+		color: #999;
+		cursor: pointer;
+		padding: 0 4px;
+		line-height: 1;
+	}
+
+	.search-clear:hover {
+		color: #000;
+	}
+
 	.filter-section {
 		margin-bottom: 40px;
+	}
+
+	.result-count {
+		margin-top: 15px;
+		font-size: 13px;
+		color: #888;
+	}
+
+	.empty-state {
+		text-align: center;
+		padding: 60px 20px;
+		color: #666;
+	}
+
+	.empty-state p {
+		margin: 0;
+		font-size: 16px;
+	}
+
+	.empty-hint {
+		margin-top: 8px !important;
+		font-size: 14px !important;
+		color: #999;
 	}
 
 	.filter-buttons {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 10px;
-		justify-content: center;
+		justify-content: flex-start;
 	}
 
 	.filter-button {
@@ -275,15 +463,35 @@
 			padding: 20px;
 		}
 
-		.header-actions {
+		.header-bar {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 12px;
+		}
+
+		.header-nav {
 			flex-direction: column;
 			gap: 8px;
 		}
 
+		.header-actions {
+			gap: 8px;
+		}
+
 		.export-button,
-		.add-button {
+		.add-button,
+		.sort-dropdown,
+		.search-input {
 			padding: 8px 16px;
 			font-size: 12px;
+		}
+
+		.sort-dropdown {
+			padding-right: 30px;
+		}
+
+		.search-input {
+			min-width: unset;
 		}
 
 		.filter-buttons {

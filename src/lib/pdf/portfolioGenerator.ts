@@ -45,12 +45,14 @@ export async function generatePortfolioPDF(options: PortfolioOptions): Promise<v
 		doc.setPage(i);
 		doc.setFontSize(10);
 		doc.setTextColor(150);
-		doc.text(`${i - 1}`, pageWidth / 2, pageHeight - 15, { align: 'center' });
+		doc.text(`${i - 1}`, pageWidth - margin, pageHeight - 15, { align: 'right' });
 	}
 
 	// Save
 	const date = new Date().toISOString().split('T')[0];
-	doc.save(`dossier-${date}.pdf`);
+	const artistSlug = options.artistName.toLowerCase().replace(/\s+/g, '-');
+	const filterSlug = getFilterSlug(options.statusFilter);
+	doc.save(`${artistSlug}-${filterSlug}-${date}.pdf`);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,6 +95,7 @@ async function addCoverPage(
 	const date = new Date();
 	const monthYear = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 	doc.text(monthYear, leftMargin, baseY + 12, { align: 'left' });
+
 }
 
 function getStatusSubtitle(statusFilter: StatusFilter): string {
@@ -111,6 +114,25 @@ function getStatusSubtitle(statusFilter: StatusFilter): string {
 			return 'Damaged works';
 		default:
 			return '';
+	}
+}
+
+function getFilterSlug(statusFilter: StatusFilter): string {
+	switch (statusFilter) {
+		case 'all':
+			return 'all-artworks';
+		case 'available':
+			return 'available-works';
+		case 'sold':
+			return 'sold-works';
+		case 'on_hold':
+			return 'on-hold';
+		case 'exhibition':
+			return 'exhibition';
+		case 'damaged':
+			return 'damaged';
+		default:
+			return 'artworks';
 	}
 }
 
@@ -223,7 +245,12 @@ function loadImageAsDataUrl(
 					return;
 				}
 				ctx.drawImage(img, 0, 0, width, height);
-				const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+				// Use PNG for .png files to preserve transparency, JPEG for others
+				const isPng = url.toLowerCase().endsWith('.png');
+				const dataUrl = isPng
+					? canvas.toDataURL('image/png')
+					: canvas.toDataURL('image/jpeg', 0.7);
 				resolve({ dataUrl, width, height });
 			} catch (error) {
 				reject(error);
