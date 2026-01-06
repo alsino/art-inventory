@@ -91,15 +91,15 @@ async function addArtworkPage(
 	let imageBottom = imageTop;
 	if (artwork.imageUrl) {
 		try {
-			const img = await loadImage(artwork.imageUrl);
+			const { dataUrl, width: imgWidth, height: imgHeight } = await loadImageAsDataUrl(artwork.imageUrl);
 			const { width, height } = fitImageDimensions(
-				img.width,
-				img.height,
+				imgWidth,
+				imgHeight,
 				maxImageWidth,
 				maxImageHeight
 			);
 			const imageX = (pageWidth - width) / 2;
-			doc.addImage(img, 'JPEG', imageX, imageTop, width, height);
+			doc.addImage(dataUrl, imageX, imageTop, width, height);
 			imageBottom = imageTop + height;
 		} catch (error) {
 			console.warn('Could not load image for artwork:', artwork.title, error);
@@ -156,12 +156,28 @@ async function addArtworkPage(
 	}
 }
 
-function loadImage(url: string): Promise<HTMLImageElement> {
+function loadImageAsDataUrl(url: string): Promise<{ dataUrl: string; width: number; height: number }> {
 	return new Promise((resolve, reject) => {
 		const img = new Image();
 		img.crossOrigin = 'anonymous';
-		img.onload = () => resolve(img);
-		img.onerror = reject;
+		img.onload = () => {
+			try {
+				const canvas = document.createElement('canvas');
+				canvas.width = img.width;
+				canvas.height = img.height;
+				const ctx = canvas.getContext('2d');
+				if (!ctx) {
+					reject(new Error('Could not get canvas context'));
+					return;
+				}
+				ctx.drawImage(img, 0, 0);
+				const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+				resolve({ dataUrl, width: img.width, height: img.height });
+			} catch (error) {
+				reject(error);
+			}
+		};
+		img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
 		img.src = url;
 	});
 }
