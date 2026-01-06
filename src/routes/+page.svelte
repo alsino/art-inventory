@@ -59,7 +59,8 @@
 			await generatePortfolioPDF({
 				artistName: 'Alsino Skowronnek',
 				title: 'Dossier',
-				artworks: filteredAndSortedArtPieces
+				artworks: filteredAndSortedArtPieces,
+				statusFilter: selectedStatus
 			});
 		} catch (error) {
 			console.error('PDF Export failed:', error);
