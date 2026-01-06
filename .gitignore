@@ -55,3 +55,6 @@ pids
 
 # Vercel
 .vercel
+
+# Project instructions
+CLAUDE.md
