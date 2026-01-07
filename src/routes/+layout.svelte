@@ -1,4 +1,3 @@
-
 <script lang="ts">
 	import '../app.css';
 	import Toast from '$lib/components/Toast.svelte';
@@ -7,10 +6,7 @@
 <header>
 	<nav>
 		<h1>
-			<a href="/" class="logo">
-				<img src="/icon.png" alt="Inventar" class="logo-icon" />
-				INVENTAR
-			</a>
+			<a href="/" class="logo">inventar</a>
 		</h1>
 	</nav>
 </header>
@@ -22,6 +18,22 @@
 <Toast />
 
 <style>
+	@font-face {
+		font-family: 'IBM Plex Mono';
+		font-style: normal;
+		font-weight: 400;
+		font-display: swap;
+		src: url('/fonts/IBMPlexMono-Regular.woff2') format('woff2');
+	}
+
+	@font-face {
+		font-family: 'IBM Plex Mono';
+		font-style: normal;
+		font-weight: 500;
+		font-display: swap;
+		src: url('/fonts/IBMPlexMono-Medium.woff2') format('woff2');
+	}
+
 	header {
 		position: fixed;
 		top: 0;
@@ -40,30 +52,21 @@
 	}
 	
 	nav h1 {
+		font-family: 'IBM Plex Mono', monospace;
 		font-size: 18px;
 		font-weight: 400;
-		letter-spacing: 1.5px;
+		letter-spacing: 0.5px;
 		margin: 0;
 	}
-	
+
 	.logo {
 		color: #000;
-		display: inline-flex;
-		align-items: center;
-		gap: 10px;
 		text-decoration: none;
-		transition: all 0.2s ease;
+		transition: opacity 0.2s ease;
 	}
-	
+
 	.logo:hover {
 		opacity: 0.7;
-	}
-	
-	.logo-icon {
-		width: 20px;
-		height: 20px;
-		object-fit: contain;
-		filter: brightness(0);
 	}
 	
 	main {
@@ -75,21 +78,11 @@
 		nav {
 			padding: 12px 20px;
 		}
-		
+
 		nav h1 {
 			font-size: 16px;
-			letter-spacing: 1px;
 		}
-		
-		.logo {
-			gap: 8px;
-		}
-		
-		.logo-icon {
-			width: 18px;
-			height: 18px;
-		}
-		
+
 		main {
 			margin-top: 55px;
 		}
