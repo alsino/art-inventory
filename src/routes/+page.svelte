@@ -5,7 +5,7 @@
 	import { dndzone } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
 
-	let selectedStatus: ArtPiece['status'] | 'all' = 'all';
+	let selectedStatus: ArtPiece['status'] | 'all' = 'available';
 	let selectedSort = 'custom';
 	let searchQuery = '';
 	let animationReady = false;
@@ -30,12 +30,12 @@
 	];
 
 	const statusOptions = [
-		{ value: 'all', label: 'All Artworks' },
 		{ value: 'available', label: 'Available' },
 		{ value: 'sold', label: 'Sold' },
 		{ value: 'on_hold', label: 'On Hold' },
 		{ value: 'exhibition', label: 'Exhibition' },
-		{ value: 'damaged', label: 'Damaged' }
+		{ value: 'damaged', label: 'Damaged' },
+		{ value: 'all', label: 'All Artworks' }
 	] as const;
 
 	function formatStatus(status: ArtPiece['status']): string {
