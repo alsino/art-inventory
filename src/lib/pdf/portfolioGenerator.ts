@@ -10,6 +10,7 @@ interface PortfolioOptions {
 	title: string;
 	artworks: ArtPiece[];
 	statusFilter: StatusFilter;
+	onProgress?: (current: number, total: number) => void;
 }
 
 export async function generatePortfolioPDF(options: PortfolioOptions): Promise<void> {
@@ -33,9 +34,11 @@ export async function generatePortfolioPDF(options: PortfolioOptions): Promise<v
 	await addCoverPage(doc, options.artistName, options.title, options.statusFilter, pageWidth, pageHeight);
 
 	// Artwork pages
-	for (let i = 0; i < options.artworks.length; i++) {
+	const total = options.artworks.length;
+	for (let i = 0; i < total; i++) {
 		doc.addPage();
 		await addArtworkPage(doc, options.artworks[i], pageWidth, pageHeight, margin);
+		options.onProgress?.(i + 1, total);
 	}
 
 	// Page numbers (skip cover)

@@ -134,8 +134,16 @@
 		return counts;
 	}, {} as Record<ArtPiece['status'], number>);
 
+	let pdfProgress = 0;
+	let pdfTotal = 0;
+	let isExporting = false;
+
 	async function exportToPDF() {
-		if (!browser) return;
+		if (!browser || isExporting) return;
+
+		isExporting = true;
+		pdfProgress = 0;
+		pdfTotal = filteredAndSortedArtPieces.length;
 
 		try {
 			const { generatePortfolioPDF } = await import('$lib/pdf/portfolioGenerator');
@@ -143,11 +151,18 @@
 				artistName: 'Alsino Skowronnek',
 				title: 'Dossier',
 				artworks: filteredAndSortedArtPieces,
-				statusFilter: selectedStatus
+				statusFilter: selectedStatus,
+				onProgress: (current, total) => {
+					pdfProgress = current;
+					pdfTotal = total;
+				}
 			});
 		} catch (error) {
 			console.error('PDF Export failed:', error);
 			alert('Failed to export PDF. Please try again.');
+		} finally {
+			isExporting = false;
+			pdfProgress = 0;
 		}
 	}
 
@@ -179,10 +194,19 @@
 		</div>
 		<div class="header-actions">
 			<a href="/add" class="add-button">+ Add New Artwork</a>
-			<button class="export-button" on:click={exportToPDF}>
-				Export PDF
+			<button class="export-button" on:click={exportToPDF} disabled={isExporting}>
+				{#if isExporting}
+					{pdfProgress}/{pdfTotal}
+				{:else}
+					Export PDF
+				{/if}
 			</button>
 		</div>
+		{#if isExporting}
+			<div class="progress-bar">
+				<div class="progress-fill" style="width: {(pdfProgress / pdfTotal) * 100}%"></div>
+			</div>
+		{/if}
 	</div>
 
 	<!-- Status Filter -->
@@ -253,6 +277,7 @@
 	}
 
 	.header-bar {
+		position: relative;
 		margin-bottom: 40px;
 		display: flex;
 		justify-content: space-between;
@@ -268,6 +293,21 @@
 	.header-actions {
 		display: flex;
 		gap: 10px;
+	}
+
+	.progress-bar {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: #eee;
+	}
+
+	.progress-fill {
+		height: 100%;
+		background: #000;
+		transition: width 0.1s ease-out;
 	}
 
 	.export-button,
@@ -298,6 +338,16 @@
 	.export-button:hover {
 		background: #666;
 		color: #fff;
+	}
+
+	.export-button:disabled {
+		cursor: default;
+		opacity: 0.7;
+	}
+
+	.export-button:disabled:hover {
+		background: #fff;
+		color: #666;
 	}
 
 	.sort-dropdown {

@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import type { ArtPiece } from '$lib/types/ArtPiece.js';
-import { addArtwork, updateArtwork, deleteArtwork, getArtwork, getAllArtworks } from '$lib/firebase/firestore.js';
+import { addArtwork, updateArtwork, deleteArtwork, getArtwork, getAllArtworks, batchUpdateSortOrders } from '$lib/firebase/firestore.js';
 import { deleteImage } from '$lib/firebase/storage.js';
 import { browser } from '$app/environment';
 
@@ -99,11 +99,18 @@ function createArtPiecesStore() {
 		// Update sort orders for multiple artworks
 		updateSortOrders: async (orderedPieces: ArtPiece[]) => {
 			try {
-				// Update each piece with its new sortOrder
-				const updates = orderedPieces.map((piece, index) =>
-					updateArtwork(piece.id, { sortOrder: index })
-				);
-				await Promise.all(updates);
+				// Only update pieces whose sortOrder actually changed
+				const updates: { id: string; sortOrder: number }[] = [];
+				orderedPieces.forEach((piece, index) => {
+					if (piece.sortOrder !== index) {
+						updates.push({ id: piece.id, sortOrder: index });
+					}
+				});
+
+				if (updates.length === 0) return;
+
+				// Single batch write to Firebase
+				await batchUpdateSortOrders(updates);
 
 				// Update local store
 				update(pieces =>

@@ -1,14 +1,15 @@
-import { 
-    collection, 
-    doc, 
-    addDoc, 
-    updateDoc, 
-    deleteDoc, 
-    getDocs, 
-    getDoc, 
-    query, 
-    orderBy, 
-    serverTimestamp 
+import {
+    collection,
+    doc,
+    addDoc,
+    updateDoc,
+    deleteDoc,
+    getDocs,
+    getDoc,
+    query,
+    orderBy,
+    serverTimestamp,
+    writeBatch
 } from 'firebase/firestore';
 import { db } from './config';
 import type { ArtPiece } from '$lib/types/ArtPiece';
@@ -89,7 +90,7 @@ export async function getAllArtworks(): Promise<ArtPiece[]> {
     try {
         const collectionRef = collection(db, COLLECTION_NAME);
         const querySnapshot = await getDocs(collectionRef);
-        
+
         const artworks = querySnapshot.docs.map(doc => {
             const data = doc.data() as FirestoreArtPiece;
             return {
@@ -99,14 +100,32 @@ export async function getAllArtworks(): Promise<ArtPiece[]> {
                 updatedAt: data.updatedAt?.toDate() || new Date()
             };
         });
-        
+
         // Sort manually since orderBy might cause issues with empty collection
         return artworks.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-        
+
     } catch (error) {
         console.error('Firestore error:', error);
-        
+
         // Return empty array instead of throwing to prevent app crash
         return [];
+    }
+}
+
+export async function batchUpdateSortOrders(updates: { id: string; sortOrder: number }[]): Promise<void> {
+    if (updates.length === 0) return;
+
+    try {
+        const batch = writeBatch(db);
+
+        for (const { id, sortOrder } of updates) {
+            const artworkRef = doc(db, COLLECTION_NAME, id);
+            batch.update(artworkRef, { sortOrder });
+        }
+
+        await batch.commit();
+    } catch (error) {
+        console.error('Error batch updating sort orders:', error);
+        throw new Error('Failed to update sort orders');
     }
 }
