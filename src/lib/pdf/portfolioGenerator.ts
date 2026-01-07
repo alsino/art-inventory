@@ -33,10 +33,6 @@ export async function generatePortfolioPDF(options: PortfolioOptions): Promise<v
 	// Cover page
 	await addCoverPage(doc, options.artistName, options.title, options.statusFilter, pageWidth, pageHeight);
 
-	// Disclaimer page
-	doc.addPage();
-	addDisclaimerPage(doc, pageWidth, pageHeight);
-
 	// Artwork pages
 	const total = options.artworks.length;
 	for (let i = 0; i < total; i++) {
@@ -45,10 +41,14 @@ export async function generatePortfolioPDF(options: PortfolioOptions): Promise<v
 		options.onProgress?.(i + 1, total);
 	}
 
-	// Page numbers (skip cover)
+	// Disclaimer page (last page, no page number)
+	doc.addPage();
+	addDisclaimerPage(doc, pageWidth, pageHeight);
+
+	// Page numbers (skip cover and disclaimer)
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const totalPages = (doc.internal as any).getNumberOfPages();
-	for (let i = 2; i <= totalPages; i++) {
+	for (let i = 2; i < totalPages; i++) {
 		doc.setPage(i);
 		doc.setFontSize(10);
 		doc.setTextColor(150);
@@ -110,7 +110,7 @@ function addDisclaimerPage(doc: any, pageWidth: number, pageHeight: number): voi
 	doc.setFont('CormorantGaramond', 'italic');
 	doc.setFontSize(10);
 	doc.setTextColor(120, 120, 120);
-	doc.text('All prices exclude VAT', pageWidth / 2, pageHeight / 2, { align: 'center' });
+	doc.text('All prices exclude VAT.', pageWidth / 2, pageHeight / 2, { align: 'center' });
 }
 
 function getStatusSubtitle(statusFilter: StatusFilter): string {
