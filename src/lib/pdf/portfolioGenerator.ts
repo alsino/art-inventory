@@ -33,6 +33,10 @@ export async function generatePortfolioPDF(options: PortfolioOptions): Promise<v
 	// Cover page
 	await addCoverPage(doc, options.artistName, options.title, options.statusFilter, pageWidth, pageHeight);
 
+	// Disclaimer page
+	doc.addPage();
+	addDisclaimerPage(doc, pageWidth, pageHeight);
+
 	// Artwork pages
 	const total = options.artworks.length;
 	for (let i = 0; i < total; i++) {
@@ -99,6 +103,14 @@ async function addCoverPage(
 	const monthYear = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 	doc.text(monthYear, leftMargin, baseY + 12, { align: 'left' });
 
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function addDisclaimerPage(doc: any, pageWidth: number, pageHeight: number): void {
+	doc.setFont('CormorantGaramond', 'italic');
+	doc.setFontSize(10);
+	doc.setTextColor(120, 120, 120);
+	doc.text('All prices exclude VAT', pageWidth / 2, pageHeight / 2, { align: 'center' });
 }
 
 function getStatusSubtitle(statusFilter: StatusFilter): string {
