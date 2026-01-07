@@ -15,6 +15,7 @@ export interface ArtPiece {
 	price?: number;
 	currency?: string;
 	location?: string;
+	sortOrder?: number;
 	createdAt: Date;
 	updatedAt: Date;
 }

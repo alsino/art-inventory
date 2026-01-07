@@ -22,6 +22,7 @@
     "firebase": "^11.9.1",
     "jspdf": "^3.0.1",
     "svelte": "^5.34.7",
+    "svelte-dnd-action": "^0.9.69",
     "typescript": "^5.8.3",
     "vite": "^6.3.5"
   },

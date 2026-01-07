@@ -2,12 +2,23 @@
 	import { artPieces } from '$lib/stores/artPieces.js';
 	import type { ArtPiece } from '$lib/types/ArtPiece.js';
 	import { browser } from '$app/environment';
+	import { dndzone } from 'svelte-dnd-action';
+	import { flip } from 'svelte/animate';
 
 	let selectedStatus: ArtPiece['status'] | 'all' = 'all';
-	let selectedSort = 'newest-added';
+	let selectedSort = 'custom';
 	let searchQuery = '';
+	let animationReady = false;
+
+	// Enable animation only after initial data has loaded and settled
+	$: if ($artPieces.length > 0 && !animationReady) {
+		setTimeout(() => {
+			animationReady = true;
+		}, 100);
+	}
 
 	const sortOptions = [
+		{ value: 'custom', label: 'Custom order' },
 		{ value: 'newest-added', label: 'Newest added' },
 		{ value: 'oldest-added', label: 'Oldest added' },
 		{ value: 'year-newest', label: 'Year: newest' },
@@ -69,6 +80,8 @@
 		.filter(piece => matchesSearch(piece, searchQuery))
 		.sort((a, b) => {
 			switch (selectedSort) {
+				case 'custom':
+					return (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity);
 				case 'oldest-added':
 					return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 				case 'year-newest':
@@ -88,6 +101,30 @@
 					return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 			}
 		});
+
+	// Track the items for drag-and-drop (needs to be mutable)
+	let dragItems: ArtPiece[] = [];
+	$: dragItems = [...filteredAndSortedArtPieces];
+
+	// Drag-and-drop is only enabled in custom order mode, viewing all items, without search
+	$: isDragEnabled = selectedSort === 'custom' && selectedStatus === 'all' && !searchQuery.trim();
+
+	const flipDurationMs = 200;
+	$: activeFlipDuration = animationReady ? flipDurationMs : 0;
+
+	function handleDndConsider(e: CustomEvent<{ items: ArtPiece[] }>) {
+		dragItems = e.detail.items;
+	}
+
+	async function handleDndFinalize(e: CustomEvent<{ items: ArtPiece[] }>) {
+		dragItems = e.detail.items;
+		// Persist the new order to Firebase
+		try {
+			await artPieces.updateSortOrders(dragItems);
+		} catch (error) {
+			console.error('Failed to save sort order:', error);
+		}
+	}
 
 	// Count artworks by status
 	$: statusCounts = $artPieces.reduce((counts, piece) => {
@@ -180,12 +217,18 @@
 			{/if}
 		</div>
 	{:else}
-	<div class="grid">
-		{#each filteredAndSortedArtPieces as piece (piece.id)}
-			<article class="artwork">
+	<div
+		class="grid"
+		class:drag-enabled={isDragEnabled}
+		use:dndzone={{ items: dragItems, flipDurationMs: activeFlipDuration, dragDisabled: !isDragEnabled }}
+		on:consider={handleDndConsider}
+		on:finalize={handleDndFinalize}
+	>
+		{#each dragItems as piece (piece.id)}
+			<article class="artwork" animate:flip={{ duration: activeFlipDuration }}>
 				<a href="/piece/{piece.id}">
 					<div class="image-container">
-						<img src={piece.imageUrl} alt={piece.title} loading="lazy" />
+						<img src={piece.imageUrl} alt={piece.title} loading="lazy" draggable="false" />
 					</div>
 					<div class="info">
 						<h3>{piece.title}</h3>
@@ -404,9 +447,22 @@
 		max-width: 100%;
 	}
 
+	.grid.drag-enabled .artwork {
+		cursor: grab;
+	}
+
+	.grid.drag-enabled .artwork:active {
+		cursor: grabbing;
+	}
+
 	.artwork {
 		background: #fff;
 		max-width: 400px;
+	}
+
+	:global(.grid .artwork[aria-grabbed="true"]) {
+		opacity: 0.8;
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 	}
 
 	.artwork a {

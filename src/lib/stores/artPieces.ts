@@ -94,6 +94,31 @@ function createArtPiecesStore() {
 				console.error('Failed to get artwork:', error);
 				return null;
 			}
+		},
+
+		// Update sort orders for multiple artworks
+		updateSortOrders: async (orderedPieces: ArtPiece[]) => {
+			try {
+				// Update each piece with its new sortOrder
+				const updates = orderedPieces.map((piece, index) =>
+					updateArtwork(piece.id, { sortOrder: index })
+				);
+				await Promise.all(updates);
+
+				// Update local store
+				update(pieces =>
+					pieces.map(piece => {
+						const newIndex = orderedPieces.findIndex(p => p.id === piece.id);
+						if (newIndex !== -1) {
+							return { ...piece, sortOrder: newIndex };
+						}
+						return piece;
+					})
+				);
+			} catch (error) {
+				console.error('Failed to update sort orders:', error);
+				throw error;
+			}
 		}
 	};
 }
