@@ -138,6 +138,10 @@
 	let pdfTotal = 0;
 	let isExporting = false;
 
+	let downloadProgress = 0;
+	let downloadTotal = 0;
+	let isDownloading = false;
+
 	async function exportToPDF() {
 		if (!browser || isExporting) return;
 
@@ -163,6 +167,38 @@
 		} finally {
 			isExporting = false;
 			pdfProgress = 0;
+		}
+	}
+
+	async function downloadImages() {
+		if (!browser || isDownloading) return;
+
+		const artworksWithImages = filteredAndSortedArtPieces.filter((a) => a.imageUrl);
+		if (artworksWithImages.length === 0) {
+			alert('No images to download.');
+			return;
+		}
+
+		isDownloading = true;
+		downloadProgress = 0;
+		downloadTotal = artworksWithImages.length;
+
+		try {
+			const { downloadImagesAsZip } = await import('$lib/download/imageDownloader');
+			await downloadImagesAsZip({
+				artworks: artworksWithImages,
+				statusFilter: selectedStatus,
+				onProgress: (current, total) => {
+					downloadProgress = current;
+					downloadTotal = total;
+				}
+			});
+		} catch (error) {
+			console.error('Image download failed:', error);
+			alert('Failed to download images. Please try again.');
+		} finally {
+			isDownloading = false;
+			downloadProgress = 0;
 		}
 	}
 
@@ -201,10 +237,17 @@
 					Export PDF
 				{/if}
 			</button>
+			<button class="export-button" on:click={downloadImages} disabled={isDownloading}>
+				{#if isDownloading}
+					{downloadProgress}/{downloadTotal}
+				{:else}
+					Download Images
+				{/if}
+			</button>
 		</div>
-		{#if isExporting}
+		{#if isExporting || isDownloading}
 			<div class="progress-bar">
-				<div class="progress-fill" style="width: {(pdfProgress / pdfTotal) * 100}%"></div>
+				<div class="progress-fill" style="width: {isExporting ? (pdfProgress / pdfTotal) * 100 : (downloadProgress / downloadTotal) * 100}%"></div>
 			</div>
 		{/if}
 	</div>
