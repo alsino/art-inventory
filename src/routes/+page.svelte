@@ -357,6 +357,7 @@
 	.add-button {
 		color: #000;
 		border: 1px solid #000;
+		border-radius: 4px;
 		padding: 10px 20px;
 		font-size: 14px;
 		font-weight: 400;
@@ -400,6 +401,7 @@
 		text-transform: uppercase;
 		letter-spacing: 0.5px;
 		border: 1px solid #ccc;
+		border-radius: 4px;
 		background: #fff;
 		color: #666;
 		cursor: pointer;
@@ -426,6 +428,7 @@
 		font-size: 14px;
 		font-weight: 400;
 		border: 1px solid #ccc;
+		border-radius: 4px;
 		background: #fff;
 		color: #000;
 		font-family: inherit;
@@ -506,6 +509,7 @@
 	.filter-button {
 		padding: 8px 16px;
 		border: 1px solid #ccc;
+		border-radius: 4px;
 		background: #fff;
 		color: #666;
 		font-size: 14px;

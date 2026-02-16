@@ -157,6 +157,7 @@
 	.edit-link,
 	.delete-button {
 		border: 1px solid #000;
+		border-radius: 4px;
 		padding: 8px 16px;
 		font-size: 14px;
 		text-transform: uppercase;
@@ -342,6 +343,7 @@
 		text-transform: uppercase;
 		letter-spacing: 1px;
 		border: 1px solid #000;
+		border-radius: 4px;
 		background: #fff;
 		color: #000;
 		cursor: pointer;
