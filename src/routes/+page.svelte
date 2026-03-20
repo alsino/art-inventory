@@ -170,6 +170,85 @@
 		}
 	}
 
+	let isBackingUp = false;
+
+	async function exportBackup() {
+		if (!browser || isBackingUp) return;
+		isBackingUp = true;
+
+		try {
+			const JSZip = (await import('jszip')).default;
+			const zip = new JSZip();
+
+			// Get all artworks (not just filtered)
+			const allPieces = $artPieces.filter(p => p.id && p.id.length > 0);
+
+			// Convert to flat row format matching the Tauri app's SQLite schema
+			const rows = allPieces.map(p => ({
+				id: p.id,
+				title: p.title,
+				year: p.year,
+				width: p.dimensions.width,
+				height: p.dimensions.height,
+				unit: p.dimensions.unit,
+				medium: p.medium,
+				description: p.description || '',
+				image_filename: p.imagePath ? p.imagePath.split('/').pop() || '' : '',
+				status: p.status,
+				price: p.price ?? null,
+				currency: p.currency || 'EUR',
+				location: p.location || '',
+				sort_order: p.sortOrder ?? 0,
+				created_at: p.createdAt instanceof Date ? p.createdAt.toISOString() : new Date().toISOString(),
+				updated_at: p.updatedAt instanceof Date ? p.updatedAt.toISOString() : new Date().toISOString(),
+			}));
+
+			zip.file('metadata.json', JSON.stringify({
+				version: 1,
+				artworks: rows,
+				exportedAt: new Date().toISOString(),
+			}, null, 2));
+
+			// Download each image from Firebase Storage
+			for (let i = 0; i < allPieces.length; i++) {
+				const piece = allPieces[i];
+				if (piece.imageUrl) {
+					try {
+						const response = await fetch(piece.imageUrl);
+						if (response.ok) {
+							const blob = await response.blob();
+							const filename = rows[i].image_filename;
+							if (filename) {
+								zip.file(`images/${filename}`, blob);
+							}
+						}
+					} catch (err) {
+						console.warn(`Failed to download image for "${piece.title}":`, err);
+					}
+				}
+			}
+
+			// Generate and download zip
+			const zipBlob = await zip.generateAsync({ type: 'blob' });
+			const url = URL.createObjectURL(zipBlob);
+			const link = document.createElement('a');
+			link.href = url;
+			const date = new Date().toISOString().split('T')[0];
+			link.download = `inventar-backup-${date}.zip`;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			URL.revokeObjectURL(url);
+
+			alert(`Backup exported: ${allPieces.length} artworks`);
+		} catch (error) {
+			console.error('Backup export failed:', error);
+			alert('Failed to export backup. Please try again.');
+		} finally {
+			isBackingUp = false;
+		}
+	}
+
 	async function downloadImages() {
 		if (!browser || isDownloading) return;
 
@@ -244,8 +323,11 @@
 					Download Images
 				{/if}
 			</button>
+			<button class="export-button" on:click={exportBackup} disabled={isBackingUp}>
+				{isBackingUp ? 'Exporting...' : 'Download Backup'}
+			</button>
 		</div>
-		{#if isExporting || isDownloading}
+		{#if isExporting || isDownloading || isBackingUp}
 			<div class="progress-bar">
 				<div class="progress-fill" style="width: {isExporting ? (pdfProgress / pdfTotal) * 100 : (downloadProgress / downloadTotal) * 100}%"></div>
 			</div>
